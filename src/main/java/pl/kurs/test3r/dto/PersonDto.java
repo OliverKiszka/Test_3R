@@ -10,6 +10,7 @@ public abstract class PersonDto {
     private Double weight;
     private String email;
     private String type;
+    private Long version;
 
     public Long getId() {
         return id;
@@ -73,5 +74,13 @@ public abstract class PersonDto {
 
     public void setType(String type) {
         this.type = type;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 }

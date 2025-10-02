@@ -23,14 +23,15 @@ public class RetireeService {
 
     public RetireeDto create(CreateRetireeCommand createRetireeCommand){
         Retiree retiree = mapper.map(createRetireeCommand, Retiree.class);
-        return mapper.map(retiree, RetireeDto.class);
+        Retiree savedRetiree = retireeCrudService.add(retiree);
+        return mapper.map(savedRetiree, RetireeDto.class);
     }
     public RetireeDto update(UpdateRetireeCommand updateRetireeCommand){
         Retiree retiree = mapper.map(updateRetireeCommand, Retiree.class);
         retiree.setId(updateRetireeCommand.getId());
         retiree.setVersion(updateRetireeCommand.getVersion());
-        retireeCrudService.edit(retiree);
-        return mapper.map(retiree, RetireeDto.class);
+        Retiree updatedRetiree = retireeCrudService.edit(retiree);
+        return mapper.map(updatedRetiree, RetireeDto.class);
     }
 
 

@@ -23,16 +23,16 @@ public class StudentService {
 
     public StudentDto create(CreateStudentCommand createStudentCommand){
         Student student = mapper.map(createStudentCommand, Student.class);
-        studentCrudService.add(student);
-        return mapper.map(student, StudentDto.class);
+        Student savedStudent = studentCrudService.add(student);
+        return mapper.map(savedStudent, StudentDto.class);
     }
 
     public StudentDto update(UpdateStudentCommand updateStudentCommand) {
         Student student = mapper.map(updateStudentCommand, Student.class);
         student.setId(updateStudentCommand.getId());
         student.setVersion(updateStudentCommand.getVersion());
-        studentCrudService.edit(student);
-        return mapper.map(student, StudentDto.class);
+        Student updatedStudent = studentCrudService.edit(student);
+        return mapper.map(updatedStudent, StudentDto.class);
     }
 
 }

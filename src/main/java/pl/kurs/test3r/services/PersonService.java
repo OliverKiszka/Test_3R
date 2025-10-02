@@ -4,43 +4,54 @@ import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 import pl.kurs.test3r.commands.*;
 import pl.kurs.test3r.dto.PersonDto;
+import pl.kurs.test3r.services.strategy.CreatePersonStrategy;
+import pl.kurs.test3r.services.strategy.UpdatePersonStrategy;
+
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class PersonService {
 
-    private final StudentService studentService;
-    private final EmployeeService employeeService;
-    private final RetireeService retireeService;
+    private final Map<Class<? extends CreatePersonCommand>, CreatePersonStrategy<? extends CreatePersonCommand>> createStrategies;
+    private final Map<Class<? extends UpdatePersonCommand>, UpdatePersonStrategy<? extends UpdatePersonCommand>> updateStrategies;
 
-    public PersonService(StudentService studentService, EmployeeService employeeService, RetireeService retireeService) {
-        this.studentService = studentService;
-        this.employeeService = employeeService;
-        this.retireeService = retireeService;
+    public PersonService(List<CreatePersonStrategy<? extends  CreatePersonCommand>> createStrategies,
+                         List<UpdatePersonStrategy<? extends UpdatePersonCommand>> updateStrategies) {
+
+        this.createStrategies = createStrategies.stream()
+                .collect(Collectors.toMap(CreatePersonStrategy::getSupportedCreateCommand, Function.identity()));
+        this.updateStrategies = updateStrategies.stream()
+                .collect(Collectors.toMap(UpdatePersonStrategy::getSupportedUpdateCommand, Function.identity()));
     }
-
 
     public PersonDto create(CreatePersonCommand createPersonCommand){
-        String type = createPersonCommand.getType().toUpperCase();
-        if (createPersonCommand instanceof CreateStudentCommand createStudentCommand) {
-            return studentService.create(createStudentCommand);
-        } else if (createPersonCommand instanceof CreateEmployeeCommand createEmployeeCommand) {
-            return employeeService.create(createEmployeeCommand);
-        } else if (createPersonCommand instanceof CreateRetireeCommand createRetireeCommand) {
-            return retireeService.create(createRetireeCommand);
-        } else {
-            throw new IllegalArgumentException("Unsupported person type: " + createPersonCommand.getClass().getSimpleName());
-        }
+        CreatePersonStrategy<CreatePersonCommand> strategy = resolveCreateStrategy(createPersonCommand);
+        return strategy.create(createPersonCommand);
     }
     public PersonDto update(UpdatePersonCommand updatePersonCommand){
-        if (updatePersonCommand instanceof UpdateStudentCommand updateStudentCommand) {
-            return studentService.update(updateStudentCommand);
-        } else if (updatePersonCommand instanceof UpdateEmployeeCommand updateEmployeeCommand) {
-            return employeeService.update(updateEmployeeCommand);
-        } else if (updatePersonCommand instanceof UpdateRetireeCommand updateRetireeCommand) {
-            return retireeService.update(updateRetireeCommand);
-        } else {
-            throw new IllegalArgumentException("Unsupported person type: " + updatePersonCommand.getClass().getSimpleName());
+        UpdatePersonStrategy<UpdatePersonCommand> strategy = resolveUpdateStrategy(updatePersonCommand);
+        return strategy.update(updatePersonCommand);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <C extends CreatePersonCommand> CreatePersonStrategy<C> resolveCreateStrategy(C command){
+        CreatePersonStrategy<? extends CreatePersonCommand> strategy = createStrategies.get(command.getClass());
+        if (strategy == null){
+            throw new IllegalArgumentException("Unsupported person type: " + command.getClass().getSimpleName());
         }
+        return (CreatePersonStrategy<C>) strategy;
+    }
+
+    @SuppressWarnings("unchecked")
+    private <U extends UpdatePersonCommand> UpdatePersonStrategy<U> resolveUpdateStrategy(U command) {
+        UpdatePersonStrategy<? extends UpdatePersonCommand> strategy = updateStrategies.get(command.getClass());
+        if (strategy == null) {
+            throw new IllegalArgumentException("Unsupported person type: " + command.getClass().getSimpleName());
+        }
+        return (UpdatePersonStrategy<U>) strategy;
     }
 }

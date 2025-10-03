@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import pl.kurs.test3r.config.ImportProperties;
@@ -45,6 +46,7 @@ public class PersonCsvImportService {
     private final ImportJobRepository importJobRepository;
     private final ImportProperties properties;
     private final TransactionTemplate transactionTemplate;
+    private final TransactionTemplate progressUpdateTransactionTemplate;
     private final TaskExecutor taskExecutor;
     private final Semaphore concurrencySemaphore;
 
@@ -59,6 +61,8 @@ public class PersonCsvImportService {
         this.importJobRepository = importJobRepository;
         this.properties = properties;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.progressUpdateTransactionTemplate = new TransactionTemplate(transactionManager);
+        this.progressUpdateTransactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         this.taskExecutor = taskExecutor;
         this.personTypeRegistry = personTypeRegistry;
         this.concurrencySemaphore = properties.getMaxConcurrentImports() > 0
@@ -111,7 +115,7 @@ public class PersonCsvImportService {
     private void processImport(Long jobId, Path filePath, boolean releasePermit) {
         try {
             markInProgress(jobId);
-            ImportSummary summary = runImportInTransaction(filePath);
+            ImportSummary summary = runImportInTransaction(jobId, filePath);
             markCompleted(jobId, summary);
             String formattedThroughput = String.format(Locale.ROOT, "%.2f", summary.throughput());
             log.info("Import job {} completed. Processed {} records at {} rows/s", jobId, summary.totalRecords(), formattedThroughput);
@@ -130,11 +134,11 @@ public class PersonCsvImportService {
         }
     }
 
-    private ImportSummary runImportInTransaction(Path filepath) {
-        return transactionTemplate.execute(status -> doImport(filepath));
+    private ImportSummary runImportInTransaction(Long jobId, Path filepath) {
+        return transactionTemplate.execute(status -> doImport(jobId, filepath));
     }
 
-    private ImportSummary doImport(Path filepath) {
+    private ImportSummary doImport(Long jobId, Path filepath) {
         int batchSize = Math.max(1, properties.getBatchSize());
         try (BufferedReader reader = Files.newBufferedReader(filepath, StandardCharsets.UTF_8)) {
             String headerLine = reader.readLine();
@@ -150,6 +154,7 @@ public class PersonCsvImportService {
             List<Person> batch = new ArrayList<>(batchSize);
             long processed = 0;
             long start = System.nanoTime();
+            long lastReported = 0;
             String line;
             int rowNumber = 1;
             while ((line = reader.readLine()) != null) {
@@ -163,9 +168,11 @@ public class PersonCsvImportService {
                 processed++;
                 if (batch.size() >= batchSize) {
                     persistBatch(batch);
+                    lastReported = reportProgressIfNeeded(jobId, processed, lastReported);
                 }
             }
             persistBatch(batch);
+            lastReported = reportProgressIfNeeded(jobId, processed, lastReported);
             double durationSeconds = Math.max(1e-9, (System.nanoTime() - start) / 1_000_000_000.0);
             double throughput = processed / durationSeconds;
             if (properties.getMinimumTps() > 0 && throughput < properties.getMinimumTps()) {
@@ -178,6 +185,31 @@ public class PersonCsvImportService {
         } catch (IOException e) {
             throw new ImportProcessingException("Failed to read CSV file", e);
         }
+    }
+
+    private long reportProgressIfNeeded(Long jobId, long processed, long lastReported) {
+        if (processed <= lastReported) {
+            return lastReported;
+        }
+        updateProcessedRecords(jobId, processed);
+        return processed;
+    }
+
+    private void updateProcessedRecords(Long jobId, long processed) {
+        if (processed <= 0) {
+            return;
+        }
+        final int processedInt;
+        try {
+            processedInt = Math.toIntExact(processed);
+        } catch (ArithmeticException ex) {
+            throw new ImportProcessingException("Imported record count exceeds supported limit", ex);
+        }
+        progressUpdateTransactionTemplate.executeWithoutResult(status -> {
+            ImportJob job = importJobRepository.findById(jobId)
+                    .orElseThrow(() -> new ImportJobNotFoundException(jobId));
+            job.setProcessedRecords(processedInt);
+        });
     }
 
     private void persistBatch(List<Person> batch) {

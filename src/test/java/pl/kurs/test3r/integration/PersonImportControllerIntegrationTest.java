@@ -53,6 +53,13 @@ public class PersonImportControllerIntegrationTest {
         importJobRepository.deleteAll();
     }
 
+    private ImportJobDto fetchJobStatus(Long jobId) throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/imports/persons/" + jobId))
+                .andExpect(status().isOk())
+                .andReturn();
+        return objectMapper.readValue(result.getResponse().getContentAsString(), ImportJobDto.class);
+    }
+
     @Test
     void shouldImportPersonsFromCsv() throws Exception {
         String header = "type,firstName,lastName,pesel,height,weight,email,startDate,currentPosition,currentSalary,university,studyYear,fieldOfStudy,scholarship,pensionAmount,yearsWorked";
@@ -119,6 +126,71 @@ public class PersonImportControllerIntegrationTest {
 
         assertThat(tps).isGreaterThanOrEqualTo(importProperties.getMinimumTps());
     }
+    @Test
+    void shouldReportProgressDuringImport() throws Exception {
+        int originalBatchSize = importProperties.getBatchSize();
+        importProperties.setBatchSize(1);
+        try {
+            int records = 200;
+            String header = "type,firstName,lastName,pesel,height,weight,email,startDate,currentPosition,currentSalary,university,studyYear,fieldOfStudy,scholarship,pensionAmount,yearsWorked";
+            StringBuilder builder = new StringBuilder(header).append('\n');
+            for (int i = 0; i < records; i++) {
+                String pesel = String.format("%011d", 60000000000L + i);
+                builder.append(String.join(",",
+                        "STUDENT",
+                        "Progress" + i,
+                        "Check" + i,
+                        pesel,
+                        "170",
+                        "70",
+                        "progress" + i + "@example.com",
+                        "",
+                        "",
+                        "",
+                        "University",
+                        "1",
+                        "Field",
+                        "1000",
+                        "",
+                        ""
+                )).append('\n');
+            }
+
+            ImportJobDto jobDto = submitCsv(builder.toString(), "progress-persons.csv");
+
+            long timeoutAt = System.currentTimeMillis() + 10000;
+            Integer lastProcessed = null;
+            boolean observedIncrease = false;
+
+            while (System.currentTimeMillis() < timeoutAt) {
+                ImportJobDto status = fetchJobStatus(jobDto.getId());
+                if (status.getStatus() == ImportJobStatus.IN_PROGRESS) {
+                    Integer processed = status.getProcessedRecords();
+                    if (processed != null) {
+                        if (lastProcessed != null) {
+                            assertThat(processed).isGreaterThanOrEqualTo(lastProcessed);
+                            if (processed > lastProcessed) {
+                                observedIncrease = true;
+                            }
+                        }
+                        lastProcessed = processed;
+                    }
+                } else if (status.getStatus() == ImportJobStatus.COMPLETED) {
+                    assertThat(observedIncrease)
+                            .as("Processed records should increase while import is in progress")
+                            .isTrue();
+                    assertThat(status.getProcessedRecords()).isEqualTo(records);
+                    return;
+                } else if (status.getStatus() == ImportJobStatus.FAILED) {
+                    fail("Import failed unexpectedly: " + status.getErrorMessage());
+                }
+                Thread.sleep(20);
+            }
+            fail("Import job did not finish within timeout");
+        } finally {
+            importProperties.setBatchSize(originalBatchSize);
+        }
+    }
 
     private ImportJobDto submitCsv(String csv, String fileName) throws Exception {
         MockMultipartFile file = new MockMultipartFile(
@@ -138,10 +210,7 @@ public class PersonImportControllerIntegrationTest {
     private ImportJob awaitJobCompletion(Long jobId) throws Exception {
         long timeoutAt = System.currentTimeMillis() + 10000;
         while (System.currentTimeMillis() < timeoutAt) {
-            MvcResult result = mockMvc.perform(get("/api/imports/persons/" + jobId))
-                    .andExpect(status().isOk())
-                    .andReturn();
-            ImportJobDto dto = objectMapper.readValue(result.getResponse().getContentAsString(), ImportJobDto.class);
+            ImportJobDto dto = fetchJobStatus(jobId);
             ImportJob job = importJobRepository.findById(dto.getId())
                     .orElseThrow(() -> new IllegalStateException("Import job disappeared"));
             if (job.getStatus() == ImportJobStatus.COMPLETED || job.getStatus() == ImportJobStatus.FAILED) {

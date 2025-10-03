@@ -14,11 +14,11 @@ import java.util.Optional;
 public interface PositionRepository extends JpaRepository<PositionHistory, Long> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select ph from PositionHistory ph where ph.employee = :employeeId")
+    @Query("select ph from PositionHistory ph where ph.employee.id = :employeeId")
     List<PositionHistory> findByEmployeeIdForUpdate(@Param("employeeId") Long employeeId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select ph from PositionHistory ph join fetch ph.employee.id where ph.id = :id")
+    @Query("select ph from PositionHistory ph join fetch ph.employee where ph.id = :id")
     Optional<PositionHistory> findByIdWithEmployeeForUpdate(@Param("id") Long id);
 
     @Query("select ph from PositionHistory ph where ph.employee.id = :employeeId order by ph.dateFrom, ph.id")

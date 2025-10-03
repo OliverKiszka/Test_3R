@@ -46,7 +46,7 @@ public class LoginAttemptService {
         synchronized (timestamps) {
             timestamps.addLast(now);
             pruneOldAttempts(timestamps, now.minus(WINDOW));
-            if (timestamps.size() > MAX_ATTEMPTS) {
+            if (timestamps.size() >= MAX_ATTEMPTS) {
                 Instant unlockAt = now.plus(LOCK_DURATION);
                 locks.put(username, unlockAt);
                 return Optional.of(unlockAt);

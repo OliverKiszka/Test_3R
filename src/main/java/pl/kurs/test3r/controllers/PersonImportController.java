@@ -20,14 +20,14 @@ public class PersonImportController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'IMPORTER')")
-    public ResponseEntity<ImportJobDto> upload(@RequestParam("file") MultipartFile file){
+    public ResponseEntity<ImportJobDto> upload(@RequestParam("file") MultipartFile file) {
         ImportJobDto dto = personCsvImportService.startImport(file);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(dto);
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'Importer')")
-    public ResponseEntity<ImportJobDto> status(@PathVariable Long id){
+    @PreAuthorize("hasAnyRole('ADMIN', 'IMPORTER')")
+    public ResponseEntity<ImportJobDto> status(@PathVariable Long id) {
         return ResponseEntity.ok(personCsvImportService.getStatus(id));
     }
 

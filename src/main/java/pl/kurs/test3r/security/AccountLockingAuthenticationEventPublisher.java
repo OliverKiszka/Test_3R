@@ -21,7 +21,7 @@ public class AccountLockingAuthenticationEventPublisher implements Authenticatio
 
     @Override
     public void publishAuthenticationSuccess(Authentication authentication) {
-        if (authentication == null){
+        if (authentication == null) {
             return;
         }
         loginAttemptService.recordSuccessfulLogin(authentication.getName());
@@ -29,16 +29,17 @@ public class AccountLockingAuthenticationEventPublisher implements Authenticatio
 
     @Override
     public void publishAuthenticationFailure(AuthenticationException exception, Authentication authentication) {
-        if (authentication == null){
+        if (authentication == null) {
             return;
         }
         String username = extractUsername(authentication);
         Optional<Instant> unlockAt = loginAttemptService.recordFailedLogin(username);
         unlockAt.ifPresent(instant -> log.warn("User {} locked until {}", username, instant));
     }
-    private String extractUsername(Authentication authentication){
+
+    private String extractUsername(Authentication authentication) {
         Object principal = authentication.getPrincipal();
-        if (principal instanceof String username){
+        if (principal instanceof String username) {
             return username;
         }
         return authentication.getName();

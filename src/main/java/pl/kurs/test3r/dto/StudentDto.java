@@ -1,6 +1,6 @@
 package pl.kurs.test3r.dto;
 
-public class StudentDto extends PersonDto{
+public class StudentDto extends PersonDto {
 
     private String university;
     private Integer studyYear;

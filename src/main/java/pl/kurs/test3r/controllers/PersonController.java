@@ -29,20 +29,20 @@ public class PersonController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
-    public Page<PersonDto> search(PersonSearchCriteria criteria, Pageable pageable){
+    public Page<PersonDto> search(PersonSearchCriteria criteria, Pageable pageable) {
         return personQueryService.search(criteria, pageable);
     }
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<PersonDto> create(@RequestBody @Valid CreatePersonCommand createPersonCommand){
+    public ResponseEntity<PersonDto> create(@RequestBody @Valid CreatePersonCommand createPersonCommand) {
         PersonDto result = personService.create(createPersonCommand);
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 
     @PutMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<PersonDto> update(@RequestBody @Valid UpdatePersonCommand updatePersonCommand){
+    public ResponseEntity<PersonDto> update(@RequestBody @Valid UpdatePersonCommand updatePersonCommand) {
         PersonDto result = personService.update(updatePersonCommand);
         return ResponseEntity.status(HttpStatus.OK).body(result);
     }

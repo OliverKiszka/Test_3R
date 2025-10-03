@@ -1,6 +1,6 @@
 package pl.kurs.test3r.dto;
 
-public class RetireeDto extends PersonDto{
+public class RetireeDto extends PersonDto {
 
     private Double pensionAmount;
     private Integer yearsWorked;

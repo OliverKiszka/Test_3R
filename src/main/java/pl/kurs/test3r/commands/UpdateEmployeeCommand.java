@@ -1,12 +1,15 @@
 package pl.kurs.test3r.commands;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
+import pl.kurs.test3r.services.person.EmployeePersonTypeModule;
 
 import java.time.LocalDate;
 
-public class UpdateEmployeeCommand extends UpdatePersonCommand{
+@JsonTypeName(EmployeePersonTypeModule.TYPE)
+public class UpdateEmployeeCommand extends UpdatePersonCommand {
     @NotNull
     private LocalDate startDate;
     @NotBlank

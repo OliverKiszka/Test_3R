@@ -1,12 +1,10 @@
 package pl.kurs.test3r.dto;
 
-import pl.kurs.test3r.models.person.PersonType;
-
 import java.time.LocalDate;
 
 public class PersonSearchCriteria {
 
-    private PersonType type;
+    private String type;
     private String firstName;
     private String lastName;
     private String pesel;
@@ -38,11 +36,11 @@ public class PersonSearchCriteria {
     private Integer yearsWorkedFrom;
     private Integer yearsWorkedTo;
 
-    public PersonType getType() {
+    public String getType() {
         return type;
     }
 
-    public void setType(PersonType type) {
+    public void setType(String type) {
         this.type = type;
     }
 

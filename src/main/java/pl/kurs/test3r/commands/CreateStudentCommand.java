@@ -1,11 +1,14 @@
 package pl.kurs.test3r.commands;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
+import pl.kurs.test3r.services.person.StudentPersonTypeModule;
 
-public class CreateStudentCommand extends CreatePersonCommand{
+@JsonTypeName(StudentPersonTypeModule.TYPE)
+public class CreateStudentCommand extends CreatePersonCommand {
     @NotBlank
     private String university;
     @NotNull

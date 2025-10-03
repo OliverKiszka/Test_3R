@@ -4,13 +4,13 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import pl.kurs.test3r.exceptions.IllegalEntityIdException;
 import pl.kurs.test3r.exceptions.IllegalEntityStateException;
 import pl.kurs.test3r.exceptions.RequestedEntityNotFoundException;
 import pl.kurs.test3r.models.Identificationable;
 
 import java.beans.PropertyDescriptor;
-import java.lang.reflect.Array;
 import java.lang.reflect.ParameterizedType;
 import java.util.Arrays;
 import java.util.List;
@@ -37,9 +37,20 @@ public abstract class GenericCrudService<T extends Identificationable, ID extend
         if (entity.getId() == null)
             throw new IllegalEntityStateException("ID cannot be null when editing!");
         T managedEntity = repository.findById(entity.getId())
-                .orElseThrow(()-> new RequestedEntityNotFoundException("Entity with id " + entity.getId() + " not found", entityType));
+                .orElseThrow(() -> new RequestedEntityNotFoundException("Entity with id " + entity.getId() + " not found", entityType));
 
-        String[] ignoreProperties = Stream.concat(Stream.of("id"), Arrays.stream(getNullPropertyNames(entity)))
+        Long requestedVersion = getVersion(entity);
+        Long currentVersion = getVersion(managedEntity);
+        if (currentVersion != null || requestedVersion != null) {
+            if (requestedVersion == null) {
+                throw new IllegalEntityStateException("Version must be provided when editing!");
+            }
+            if (!requestedVersion.equals(currentVersion)) {
+                throw new ObjectOptimisticLockingFailureException(entityType, entity.getId());
+            }
+        }
+
+        String[] ignoreProperties = Stream.concat(Stream.of("id", "version"), Arrays.stream(getNullPropertyNames(entity)))
                 .distinct()
                 .toArray(String[]::new);
         BeanUtils.copyProperties(entity, managedEntity, ignoreProperties);
@@ -61,13 +72,22 @@ public abstract class GenericCrudService<T extends Identificationable, ID extend
         return repository.findAll();
     }
 
-    private String[] getNullPropertyNames(T source){
+    private String[] getNullPropertyNames(T source) {
         BeanWrapper src = new BeanWrapperImpl(source);
         return Arrays.stream(src.getPropertyDescriptors())
                 .map(PropertyDescriptor::getName)
                 .filter(propertyName -> !"class".equals(propertyName))
                 .filter(propertyName -> src.getPropertyValue(propertyName) == null)
                 .toArray(String[]::new);
+    }
+
+    private Long getVersion(T source) {
+        BeanWrapper wrapper = new BeanWrapperImpl(source);
+        if (!wrapper.isReadableProperty("version")) {
+            return null;
+        }
+        Object value = wrapper.getPropertyValue("version");
+        return value == null ? null : (Long) value;
     }
 
 }

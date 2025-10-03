@@ -24,12 +24,13 @@ public class EmployeeService {
         this.employeeDtoMapper = employeeDtoMapper;
     }
 
-    public EmployeeDto create(CreateEmployeeCommand createEmployeeCommand){
+    public EmployeeDto create(CreateEmployeeCommand createEmployeeCommand) {
         Employee employee = mapper.map(createEmployeeCommand, Employee.class);
         Employee savedEmployee = employeeCrudService.add(employee);
         return employeeDtoMapper.map(savedEmployee);
     }
-    public EmployeeDto update(UpdateEmployeeCommand updateEmployeeCommand){
+
+    public EmployeeDto update(UpdateEmployeeCommand updateEmployeeCommand) {
         Employee employee = mapper.map(updateEmployeeCommand, Employee.class);
         employee.setId(updateEmployeeCommand.getId());
         employee.setVersion(updateEmployeeCommand.getVersion());

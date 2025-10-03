@@ -19,7 +19,7 @@ public class ImportJobDto {
     private OffsetDateTime startedAt;
     private OffsetDateTime finishedAt;
 
-    public static ImportJobDto from(ImportJob job){
+    public static ImportJobDto from(ImportJob job) {
         ImportJobDto dto = new ImportJobDto();
         dto.setId(job.getId());
         dto.setFileName(job.getFileName());

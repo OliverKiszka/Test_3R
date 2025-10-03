@@ -1,18 +1,12 @@
 package pl.kurs.test3r.commands;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import jakarta.validation.constraints.*;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "type", visible = true)
-@JsonSubTypes({
-        @JsonSubTypes.Type(value = UpdateStudentCommand.class, name = "STUDENT"),
-        @JsonSubTypes.Type(value = UpdateEmployeeCommand.class, name = "EMPLOYEE"),
-        @JsonSubTypes.Type(value = UpdateRetireeCommand.class, name = "RETIREE")
-})
 public abstract class UpdatePersonCommand {
 
-    @NotBlank(message = "Type is required and must be one of: STUDENT, EMPLOYEE, RETIREE")
+    @NotBlank(message = "Type is required")
     private String type;
 
     @NotNull

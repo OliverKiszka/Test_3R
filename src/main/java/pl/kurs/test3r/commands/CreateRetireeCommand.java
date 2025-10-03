@@ -1,10 +1,13 @@
 package pl.kurs.test3r.commands;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
+import pl.kurs.test3r.services.person.RetireePersonTypeModule;
 
-public class CreateRetireeCommand extends CreatePersonCommand{
+@JsonTypeName(RetireePersonTypeModule.TYPE)
+public class CreateRetireeCommand extends CreatePersonCommand {
     @NotNull
     @PositiveOrZero
     private Double pensionAmount;

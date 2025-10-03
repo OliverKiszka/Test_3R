@@ -24,23 +24,22 @@ public class EmployeePositionController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','EMPLOYEE')")
-    public List<PositionHistoryDto> getPositions(@PathVariable Long employeeId){
+    public List<PositionHistoryDto> getPositions(@PathVariable Long employeeId) {
         return positionService.getPositions(employeeId);
     }
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
-    public ResponseEntity<PositionHistoryDto> createPosition(@PathVariable Long employeeId, @RequestBody @Valid CreatePositionCommand command){
+    public ResponseEntity<PositionHistoryDto> createPosition(@PathVariable Long employeeId, @RequestBody @Valid CreatePositionCommand command) {
         PositionHistoryDto dto = positionService.createPosition(employeeId, command);
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
     @PutMapping("/{positionId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
-    public PositionHistoryDto updatePosition(@PathVariable Long employeeId, @PathVariable Long positionId, @RequestBody @Valid UpdatePositionCommand command){
+    public PositionHistoryDto updatePosition(@PathVariable Long employeeId, @PathVariable Long positionId, @RequestBody @Valid UpdatePositionCommand command) {
         return positionService.updatePosition(employeeId, positionId, command);
     }
-
 
 
 }

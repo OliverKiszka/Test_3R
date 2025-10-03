@@ -2,7 +2,7 @@ package pl.kurs.test3r.dto;
 
 import java.time.LocalDate;
 
-public class EmployeeDto extends PersonDto{
+public class EmployeeDto extends PersonDto {
 
     private LocalDate startDate;
     private String currentPosition;
